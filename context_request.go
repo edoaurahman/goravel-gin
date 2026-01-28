@@ -624,11 +624,15 @@ func getHttpBody(ctx *Context) (map[string]any, error) {
 		}
 
 		if len(bodyBytes) > 0 {
-			if err := json.Unmarshal(bodyBytes, &data); err != nil {
-				return nil, fmt.Errorf("decode json [%v] error: %v", string(bodyBytes), err)
-			}
-
+			// Always restore body first so Bind() can use it
 			request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+			// Try to unmarshal to map, ignore error for arrays (they should use Bind())
+			if err := json.Unmarshal(bodyBytes, &data); err != nil {
+				// If it's a JSON array, just return nil data (use Bind() to get array)
+				// Don't return error - let the controller handle it via Bind()
+				return nil, nil
+			}
 		}
 	}
 
