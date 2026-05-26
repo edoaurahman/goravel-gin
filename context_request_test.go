@@ -1542,6 +1542,24 @@ func (s *ContextRequestSuite) TestRoute_NoSuffixRegression() {
 	s.Equal(http.StatusOK, code)
 }
 
+func (s *ContextRequestSuite) TestRoute_PathFallback_EmptyParams() {
+	s.route.Get("/route/path-fallback/{uuid}", func(ctx contractshttp.Context) contractshttp.Response {
+		ctx.(*Context).Instance().Params = nil
+
+		return ctx.Response().Success().Json(contractshttp.Json{
+			"uuid": ctx.Request().Route("uuid"),
+		})
+	})
+
+	req, err := http.NewRequest("GET", "/route/path-fallback/test-uuid-123", nil)
+	s.Require().Nil(err)
+
+	code, body, _, _ := s.request(req)
+
+	s.Equal("{\"uuid\":\"test-uuid-123\"}", body)
+	s.Equal(http.StatusOK, code)
+}
+
 func (s *ContextRequestSuite) TestSession() {
 	s.route.Get("/session", func(ctx contractshttp.Context) contractshttp.Response {
 		ctx.Request().SetSession(session.NewSession("goravel_session", nil, foundationjson.New()))

@@ -623,8 +623,39 @@ func (r *ContextRequest) param(key string) string {
 	}
 
 	for _, param := range r.instance.Params {
+		if param.Key == key {
+			return param.Value
+		}
+	}
+
+	for _, param := range r.instance.Params {
 		if suffix, exist := strings.CutPrefix(param.Key, key); exist && strings.HasSuffix(param.Value, suffix) {
 			return strings.TrimSuffix(param.Value, suffix)
+		}
+	}
+
+	if val := r.extractParamFromPath(key); val != "" {
+		return val
+	}
+
+	return ""
+}
+
+func (r *ContextRequest) extractParamFromPath(key string) string {
+	pattern := colonToBracket(r.instance.FullPath())
+	if pattern == "" {
+		return ""
+	}
+
+	path := r.instance.Request.URL.Path
+	patternParts := strings.Split(pattern, "/")
+	pathParts := strings.Split(path, "/")
+
+	if len(patternParts) == len(pathParts) {
+		for i, part := range patternParts {
+			if part == "{"+key+"}" && i < len(pathParts) {
+				return pathParts[i]
+			}
 		}
 	}
 
